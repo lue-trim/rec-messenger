@@ -1,29 +1,60 @@
 from http.server import HTTPServer, BaseHTTPRequestHandler
+from urllib.parse import unquote, quote, urlparse, parse_qs
+import json, multiprocessing, functools, toml, requests
+
+class StaticValues():
+    settings = dict()
+    message_queue = multiprocessing.Queue()
 
 class RequestHandler(BaseHTTPRequestHandler):
+    def reply(self, message="Mua!", code=200):
+        '发送服务器响应'
+        self.send_response(code)
+        self.send_header('Content-Type', 'application/json')
+        self.end_headers()
+        data = {
+            "code": code,
+            "message": message
+        }
+        self.wfile.write(json.dumps(data).encode())
+
     def do_POST(self):
         '接收POST消息'
-        from urllib.parse import unquote, quote
-        import json
         # 读取参数
         data = self.rfile.read(int(self.headers['content-length']))
         data = unquote(str(data, encoding='utf-8'))
         json_obj = json.loads(data)
 
-        webhook_handle(json_data=json_obj)
+        webhook_handle(json_data=json_obj, direct_send=StaticValues['qmsg']['enabled'])
         # 回复
-        self.send_response(200)
-        self.send_header('Content-Type', 'application/json')
-        self.end_headers()
-        data = {
-            "code": 200,
-            "message": "Mua!"
-        }
-        self.wfile.write(str(data).encode())
+        self.reply()
 
-def send_msg(msg:str):
+    def do_GET(self):
+        '供外部请求'
+        # 读取参数
+        params = parse_qs(urlparse(self.path).query)
+        # TODO: 支持其他参数
+        if params:
+            req_type = params.get('type', [''])[0]
+            msg_queue = StaticValues.message_queue
+            msg = ''
+            if req_type == "latest":
+                # 只回复最新的
+                if not msg_queue.empty():
+                    msg = msg_queue.get()
+            elif req_type == "all":
+                # 我全都要
+                qlist = [msg_queue.get() for _ in range(msg_queue.qsize())]
+                msg = functools.reduce(lambda x,y:f"{x}; \n{y}", qlist)
+                StaticValues.message_queue = multiprocessing.Queue()
+            else:
+                msg = '未知请求'
+        self.reply(message=msg)
+
+def send_msg():
     '给bot发消息'
-    import json, requests
+    msg = StaticValues.message_queue.get()
+    KEY = StaticValues.settings['qmsg']['key']
 
     url = f"https://qmsg.zendee.cn/send/{KEY}"
     headers = {
@@ -42,10 +73,8 @@ def send_msg(msg:str):
     # 获取结果
     print(data)
 
-def webhook_handle(json_data):
+def webhook_handle(json_data, direct_send=True):
     '处理发送的webhook消息'
-    import json
-    
     # 预处理
     data = json.dumps(json_data['data'])
     date = json_data['date']
@@ -54,7 +83,7 @@ def webhook_handle(json_data):
     # 根据事件类型分别发送不同信息
     if event_type == "Error":
         msg = f"""\
-录播异常
+录制异常
 时间：
 {date}
 详情：
@@ -76,7 +105,7 @@ def webhook_handle(json_data):
 
         if event_type == "RecordingStartedEvent":
             msg = f"""\
-{user_name} 已开始录制
+{user_name} 录制开始
 时间：{date}
 标题：{title}
 分区：{area_name}
@@ -84,19 +113,22 @@ def webhook_handle(json_data):
 
         elif event_type == "RecordingFinishedEvent":
             msg = f"""\
-{user_name} 已下播
+{user_name} 录制结束
 时间：{date}
 标题：{title}
 分区：{area_name}
 """
 
     # 发送
-    send_msg(msg) 
+    StaticValues.message_queue.put(msg)
+    if direct_send:
+        send_msg() 
 
 def get_blrec_data(room_id):
     '获取房间信息'
     import requests
-    url = "http://{}:{}{}".format(host_blrec, port_blrec, '/api/v1/tasks/{}/data'.format(room_id))
+    blrec_url = StaticValues.settings['blrec']['url']
+    url = f"{blrec_url}/api/v1/tasks/{room_id}/data"
     response = requests.get(url=url)
     response_json = response.json()
 
@@ -104,17 +136,14 @@ def get_blrec_data(room_id):
 
 def test():
     '测试用例'
-    from urllib.parse import unquote, quote
     send_msg()
 
-KEY = '60d3ffb38dff381c8178cfa75c7e8315'
-host_server = "localhost"
-port_server = 23561
-
-host_blrec = "localhost"
-port_blrec = 2356
+with open("config.toml", 'r', encoding='utf-8') as f:
+    StaticValues.settings = toml.load(f)
 
 if __name__ == "__main__":
+    host_server = StaticValues.settings['messenger']['host']
+    port_server = StaticValues.settings['messenger']['port']
     # 监听
     addr = (host_server, port_server)
     server = HTTPServer(addr, RequestHandler)

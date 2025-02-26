@@ -1,0 +1,10 @@
+[messenger]
+host = "localhost"
+port = 23561
+
+[qmsg]
+enabled = false
+key = "60d3ffb38dff381c8178cfa75c7e8315"
+
+[blrec]
+url = "http://localhost:2356"
