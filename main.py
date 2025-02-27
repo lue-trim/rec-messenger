@@ -25,7 +25,7 @@ class RequestHandler(BaseHTTPRequestHandler):
         data = unquote(str(data, encoding='utf-8'))
         json_obj = json.loads(data)
 
-        webhook_handle(json_data=json_obj, direct_send=StaticValues['qmsg']['enabled'])
+        webhook_handle(json_data=json_obj, direct_send=StaticValues.settings['qmsg']['enabled'])
         # 回复
         self.reply()
 
