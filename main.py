@@ -37,18 +37,19 @@ class RequestHandler(BaseHTTPRequestHandler):
         if params:
             req_type = params.get('type', [''])[0]
             msg_queue = StaticValues.message_queue
-            msg = ''
-            if req_type == "latest":
-                # 只回复最新的
-                if not msg_queue.empty():
+            if not msg_queue.empty():
+                if req_type == "latest":
+                    # 只回复最新的
                     msg = msg_queue.get()
-            elif req_type == "all":
-                # 我全都要
-                qlist = [msg_queue.get() for _ in range(msg_queue.qsize())]
-                msg = functools.reduce(lambda x,y:f"{x}; \n{y}", qlist)
-                StaticValues.message_queue = multiprocessing.Queue()
+                elif req_type == "all":
+                    # 我全都要
+                    qlist = [msg_queue.get() for _ in range(msg_queue.qsize())]
+                    msg = functools.reduce(lambda x,y:f"{x}; \n{y}", qlist)
+                    StaticValues.message_queue = multiprocessing.Queue()
+                else:
+                    msg = '未知请求'
             else:
-                msg = '未知请求'
+                msg = ''
         self.reply(message=msg)
 
 def send_msg():
