@@ -1,56 +1,11 @@
-from http.server import HTTPServer, BaseHTTPRequestHandler
-from urllib.parse import unquote, quote, urlparse, parse_qs
+from fastapi import FastAPI
 import json, multiprocessing, functools, toml, requests
+
+from models import BlrecWebhook, MessageType
 
 class StaticValues():
     settings = dict()
     message_queue = multiprocessing.Queue()
-
-class RequestHandler(BaseHTTPRequestHandler):
-    def reply(self, message="Mua!", code=200):
-        '发送服务器响应'
-        self.send_response(code)
-        self.send_header('Content-Type', 'application/json')
-        self.end_headers()
-        data = {
-            "code": code,
-            "message": message
-        }
-        self.wfile.write(json.dumps(data).encode())
-
-    def do_POST(self):
-        '接收POST消息'
-        # 读取参数
-        data = self.rfile.read(int(self.headers['content-length']))
-        data = unquote(str(data, encoding='utf-8'))
-        json_obj = json.loads(data)
-
-        webhook_handle(json_data=json_obj, direct_send=StaticValues.settings['qmsg']['enabled'])
-        # 回复
-        self.reply()
-
-    def do_GET(self):
-        '供外部请求'
-        # 读取参数
-        params = parse_qs(urlparse(self.path).query)
-        # TODO: 支持其他参数
-        if params:
-            req_type = params.get('type', [''])[0]
-            msg_queue = StaticValues.message_queue
-            if not msg_queue.empty():
-                if req_type == "latest":
-                    # 只回复最新的
-                    msg = msg_queue.get()
-                elif req_type == "all":
-                    # 我全都要
-                    qlist = [msg_queue.get() for _ in range(msg_queue.qsize())]
-                    msg = functools.reduce(lambda x,y:f"{x}; \n{y}", qlist)
-                    StaticValues.message_queue = multiprocessing.Queue()
-                else:
-                    msg = '未知请求'
-            else:
-                msg = ''
-        self.reply(message=msg)
 
 def send_msg():
     '给bot发消息'
@@ -142,10 +97,30 @@ def test():
 with open("config.toml", 'r', encoding='utf-8') as f:
     StaticValues.settings = toml.load(f)
 
-if __name__ == "__main__":
-    host_server = StaticValues.settings['messenger']['host']
-    port_server = StaticValues.settings['messenger']['port']
-    # 监听
-    addr = (host_server, port_server)
-    server = HTTPServer(addr, RequestHandler)
-    server.serve_forever()
+app = FastAPI()
+
+@app.post("/")
+async def get_blrec_message(data: BlrecWebhook):
+    '处理blrec post过来的消息'
+    json_data = {"data": data.data, "date": data.date, "type": data.type, "id": data.id}
+    webhook_handle(json_data=json_data, direct_send=StaticValues.settings['qmsg']['enabled'])
+    return {"code": 200, "message": "mua!"}
+
+@app.get("/")
+async def get_blrec_message(msgtype=MessageType.latest):
+    '获取消息队列'
+    msg_queue = StaticValues.message_queue
+    if not msg_queue.empty():
+        if msgtype is MessageType.latest:
+            # 只回复最新的
+            msg = msg_queue.get()
+        elif msgtype is MessageType.all:
+            # 我全都要
+            qlist = [msg_queue.get() for _ in range(msg_queue.qsize())]
+            msg = functools.reduce(lambda x,y:f"{x}; \n{y}", qlist)
+            StaticValues.message_queue = multiprocessing.Queue()
+        else:
+            msg = '未知请求'
+    else:
+        msg = ''
+    return {"code": 200, "message": msg}
