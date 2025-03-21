@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 import json, multiprocessing, functools, toml, requests
 
-from models import BlrecWebhookData, MessageType
+from models import BlrecType, BlrecSecondaryData, MessageType
+from uuid import UUID
 
 class StaticValues():
     settings = dict()
@@ -37,7 +38,7 @@ async def webhook_handle(json_data, direct_send=True):
     event_type = json_data['type']
 
     # 根据事件类型分别发送不同信息
-    if event_type == "Error":
+    if event_type == BlrecType.Error:
         msg = f"""\
 录制异常
 时间：
@@ -45,7 +46,7 @@ async def webhook_handle(json_data, direct_send=True):
 详情：
 {data}
 """
-    elif event_type == "SpaceNoEnoughEvent":
+    elif event_type == BlrecType.SpaceNoEnoughEvent:
         msg = f"""警告：录播磁盘空间不足"""
 
     else: 
@@ -59,7 +60,7 @@ async def webhook_handle(json_data, direct_send=True):
         title = json_data['data']['room_info']['title']
         area_name = json_data['data']['room_info']['area_name']
 
-        if event_type == "RecordingStartedEvent":
+        if event_type == BlrecType.RecordingStartedEvent:
             msg = f"""\
 {user_name} 录制开始
 时间：{date}
@@ -67,7 +68,7 @@ async def webhook_handle(json_data, direct_send=True):
 分区：{area_name}
 """
 
-        elif event_type == "RecordingFinishedEvent":
+        elif event_type == BlrecType.RecordingFinishedEvent:
             msg = f"""\
 {user_name} 录制结束
 时间：{date}
@@ -100,10 +101,9 @@ with open("config.toml", 'r', encoding='utf-8') as f:
 app = FastAPI()
 
 @app.post("/")
-async def get_blrec_message(item: BlrecWebhookData):
+async def get_blrec_message(data: BlrecSecondaryData, date: str, type: BlrecType, id: UUID):
     '处理blrec post过来的消息'
-    data = item
-    json_data = {"data": data.data, "date": data.date, "type": data.type, "id": data.id}
+    json_data = {"data": data, "date": date, "type": type, "id": id}
     await webhook_handle(json_data=json_data, direct_send=StaticValues.settings['qmsg']['enabled'])
     return {"code": 200, "message": "mua!"}
 
