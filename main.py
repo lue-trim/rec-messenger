@@ -107,8 +107,8 @@ async def get_blrec_message(data: BlrecWebhook):
     return {"code": 200, "message": "mua!"}
 
 @app.get("/")
-async def get_blrec_message(msgtype=MessageType.latest):
-    '获取消息队列'
+async def return_blrec_message(msgtype=MessageType.latest):
+    '返回消息'
     msg_queue = StaticValues.message_queue
     if not msg_queue.empty():
         if msgtype is MessageType.latest:
