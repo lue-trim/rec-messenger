@@ -65,7 +65,7 @@ class BlrecWebhookData(BaseModel):
     id: UUID
     date: str
     type: BlrecType
-    data: BlrecSecondaryData
+    data: dict
 
 class MessageType(str, Enum):
     '要获取的消息类型'
