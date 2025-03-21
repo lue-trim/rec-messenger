@@ -7,7 +7,7 @@ class StaticValues():
     settings = dict()
     message_queue = multiprocessing.Queue()
 
-def send_msg():
+async def send_msg():
     '给bot发消息'
     msg = StaticValues.message_queue.get()
     KEY = StaticValues.settings['qmsg']['key']
@@ -29,7 +29,7 @@ def send_msg():
     # 获取结果
     print(data)
 
-def webhook_handle(json_data, direct_send=True):
+async def webhook_handle(json_data, direct_send=True):
     '处理发送的webhook消息'
     # 预处理
     data = json.dumps(json_data['data'])
@@ -52,7 +52,7 @@ def webhook_handle(json_data, direct_send=True):
         # 需要获取房间号
         room_id = json_data['data']['room_info']['room_id']
         try:
-            rec_info = get_blrec_data(room_id=room_id)
+            rec_info = await get_blrec_data(room_id=room_id)
             user_name = rec_info['user_info']['name']
         except Exception:
             user_name = str(room_id)[:3] + "***"
@@ -78,9 +78,9 @@ def webhook_handle(json_data, direct_send=True):
     # 发送
     StaticValues.message_queue.put(msg)
     if direct_send:
-        send_msg() 
+        await send_msg() 
 
-def get_blrec_data(room_id):
+async def get_blrec_data(room_id):
     '获取房间信息'
     import requests
     blrec_url = StaticValues.settings['blrec']['url']
@@ -90,7 +90,7 @@ def get_blrec_data(room_id):
 
     return response_json
 
-def test():
+async def test():
     '测试用例'
     send_msg()
 
@@ -103,7 +103,7 @@ app = FastAPI()
 async def get_blrec_message(data: BlrecWebhook):
     '处理blrec post过来的消息'
     json_data = {"data": data.data, "date": data.date, "type": data.type, "id": data.id}
-    webhook_handle(json_data=json_data, direct_send=StaticValues.settings['qmsg']['enabled'])
+    await webhook_handle(json_data=json_data, direct_send=StaticValues.settings['qmsg']['enabled'])
     return {"code": 200, "message": "mua!"}
 
 @app.get("/")
