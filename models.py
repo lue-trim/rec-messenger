@@ -42,7 +42,7 @@ class BlrecSecondaryData(BaseModel):
     name: str | None = None
     detail: str | None = None
     
-class BlrecType(int, Enum):
+class BlrecType(str, Enum):
     'BLREC事件类型'
     LiveBeganEvent = "LiveBeganEvent"
     LiveEndedEvent = "LiveEndedEvent"
