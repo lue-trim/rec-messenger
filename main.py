@@ -1,8 +1,7 @@
 from fastapi import FastAPI
 import json, multiprocessing, functools, toml, requests
 
-from models import BlrecType, BlrecSecondaryData, MessageType
-from uuid import UUID
+from models import BlrecWebhookData, MessageType, BlrecType
 
 class StaticValues():
     settings = dict()
@@ -101,9 +100,10 @@ with open("config.toml", 'r', encoding='utf-8') as f:
 app = FastAPI()
 
 @app.post("/")
-async def get_blrec_message(data: BlrecSecondaryData, date: str, type: BlrecType, id: UUID):
+async def get_blrec_message(item: BlrecWebhookData):
     '处理blrec post过来的消息'
-    json_data = {"data": data, "date": date, "type": type, "id": id}
+    data = item
+    json_data = {"data": data.data, "date": data.date, "type": data.type, "id": data.id}
     await webhook_handle(json_data=json_data, direct_send=StaticValues.settings['qmsg']['enabled'])
     return {"code": 200, "message": "mua!"}
 

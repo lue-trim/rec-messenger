@@ -44,21 +44,21 @@ class BlrecSecondaryData(BaseModel):
     
 class BlrecType(int, Enum):
     'BLREC事件类型'
-    LiveBeganEvent = 1
-    LiveEndedEvent = 2
-    RoomChangeEvent = 3
-    RecordingStartedEvent = 4
-    RecordingFinishedEvent = 5
-    RecordingCancelledEvent = 6
-    VideoFileCreatedEvent = 7
-    VideoFileCompletedEvent = 8
-    DanmakuFileCreatedEvent = 9
-    DanmakuFileCompletedEvent = 10
-    RawDanmakuFileCreatedEvent = 11
-    RawDanmakuFileCompletedEvent = 12
-    VideoPostprocessingCompletedEvent = 13
-    SpaceNoEnoughEvent = 14
-    Error = 15
+    LiveBeganEvent = "LiveBeganEvent"
+    LiveEndedEvent = "LiveEndedEvent"
+    RoomChangeEvent = "RoomChangeEvent"
+    RecordingStartedEvent = "RecordingStartedEvent"
+    RecordingFinishedEvent = "RecordingFinishedEvent"
+    RecordingCancelledEvent = "RecordingCancelledEvent"
+    VideoFileCreatedEvent = "VideoFileCreatedEvent"
+    VideoFileCompletedEvent = "VideoFileCompletedEvent"
+    DanmakuFileCreatedEvent = "DanmakuFileCreatedEvent"
+    DanmakuFileCompletedEvent = "DanmakuFileCompletedEvent"
+    RawDanmakuFileCreatedEvent = "RawDanmakuFileCreatedEvent"
+    RawDanmakuFileCompletedEvent = "RawDanmakuFileCompletedEvent"
+    VideoPostprocessingCompletedEvent = "VideoPostprocessingCompletedEvent"
+    SpaceNoEnoughEvent = "SpaceNoEnoughEvent"
+    Error = "Error"
 
 class BlrecWebhookData(BaseModel):
     'BLREC Webhook的数据格式'
