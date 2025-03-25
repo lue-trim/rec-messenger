@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-import json, multiprocessing, functools, toml, requests
+import json, multiprocessing, functools, toml, requests, uvicorn
 
 from models import BlrecWebhookData, MessageType, BlrecType
 
@@ -125,3 +125,10 @@ async def return_blrec_message(msgtype=MessageType.latest):
     else:
         msg = ''
     return {"code": 200, "message": msg}
+
+if __name__ == "__main__":
+    uvicorn.run(
+        app, 
+        host=StaticValues.settings['messenger']['host'],
+        port=StaticValues.settings['messenger']['port']
+        )
