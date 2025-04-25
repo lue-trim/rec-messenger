@@ -1,16 +1,21 @@
 from fastapi import FastAPI
-import json, multiprocessing, functools, toml, requests, uvicorn
+from fastapi import Depends, Request, HTTPException
+from fastapi.responses import RedirectResponse
+from ipaddress import ip_address
+import json, toml, random
+import asyncio, requests, uvicorn
 
-from models import BlrecWebhookData, MessageType, BlrecType
+# from loguru import logger
+from models import BlrecWebhookData, BlrecType
+from static import config
 
 class StaticValues():
-    settings = dict()
-    message_queue = multiprocessing.Queue()
+    message_queue = asyncio.Queue(maxsize=10)
 
 async def send_msg():
     '给bot发消息'
-    msg = StaticValues.message_queue.get()
-    KEY = StaticValues.settings['qmsg']['key']
+    msg = await StaticValues.message_queue.get()
+    KEY = config.qmsg['key']
 
     url = f"https://qmsg.zendee.cn/send/{KEY}"
     headers = {
@@ -76,14 +81,14 @@ async def webhook_handle(json_data, direct_send=True):
 """
 
     # 发送
-    StaticValues.message_queue.put(msg)
+    StaticValues.message_queue.put_nowait(msg)
     if direct_send:
         await send_msg() 
 
 async def get_blrec_data(room_id):
     '获取房间信息'
     import requests
-    blrec_url = StaticValues.settings['blrec']['url']
+    blrec_url = config.blrec['url']
     url = f"{blrec_url}/api/v1/tasks/{room_id}/data"
     response = requests.get(url=url)
     response_json = response.json()
@@ -94,32 +99,67 @@ async def test():
     '测试用例'
     send_msg()
 
-with open("config.toml", 'r', encoding='utf-8') as f:
-    StaticValues.settings = toml.load(f)
-
+# logger.add("debug.log", enqueue=True, level="DEBUG")
 app = FastAPI()
 
+### BLREC Webhook
+def check_ip (req: Request):
+    '检查IP是否在许可范围内'
+    request_ip = ip_address(req.client.host)
+    allow_ip_list = [ip_address(ip) for ip in config.app['ip_whitelist']]
+    if request_ip not in allow_ip_list:
+        raise HTTPException(
+            status_code=403, 
+            detail="You are unauthorized here."
+            )
+    else:
+        return True
 @app.post("/")
-async def get_blrec_message(item: BlrecWebhookData):
+async def get_blrec_message(item: BlrecWebhookData|str, ip_check=Depends(check_ip)):
     '处理blrec post过来的消息'
     data = item
-    json_data = {"data": data.data, "date": data.date, "type": data.type, "id": data.id}
-    await webhook_handle(json_data=json_data, direct_send=StaticValues.settings['qmsg']['enabled'])
+    if type(item) is str:
+        json_data = json.loads(item)
+    else:
+        json_data = {"data": data.data, "date": data.date, "type": data.type, "id": data.id}
+    await webhook_handle(json_data=json_data, direct_send=config.qmsg['enabled'])
     return {"code": 200, "message": "mua!"}
 
+### 随机歌单
+@app.get("/rndsong")
+async def get_rnd_wasesong():
+    '返回一首随机叽歌'
+    songlist = config.app['songlist']
+    if songlist:
+        aid = random.choice(songlist)
+        url = f"https://www.bilibili.com/video/av{aid}"
+        return RedirectResponse(url=url)
+    else:
+        return {"code": 500, "message": "Please set up the songs!"}
+
+### 获取消息
 @app.get("/")
-async def return_blrec_message(msgtype=MessageType.latest):
+async def return_blrec_message(type:str="latest", ip_check=Depends(check_ip)):
     '返回消息'
+    msgtype = type
     msg_queue = StaticValues.message_queue
     if not msg_queue.empty():
-        if msgtype is MessageType.latest:
+        if msgtype == "latest":
+            logger.debug("latest")
             # 只回复最新的
-            msg = msg_queue.get()
-        elif msgtype is MessageType.all:
+            msg = await msg_queue.get()
+        elif msgtype == "all":
             # 我全都要
-            qlist = [msg_queue.get() for _ in range(msg_queue.qsize())]
-            msg = functools.reduce(lambda x,y:f"{x}; \n{y}", qlist)
-            StaticValues.message_queue = multiprocessing.Queue()
+            qlist = []
+            is_empty = False
+            # logger.debug(msg_queue.qsize())
+            while not is_empty:
+                try:
+                    qlist.append(msg_queue.get_nowait())
+                except asyncio.QueueEmpty:
+                    is_empty = True
+            # msg = functools.reduce(lambda x,y:f"{x}; \n{y}", qlist)
+            msg = ";\n".join(qlist)
         else:
             msg = '未知请求'
     else:
@@ -129,6 +169,6 @@ async def return_blrec_message(msgtype=MessageType.latest):
 if __name__ == "__main__":
     uvicorn.run(
         app, 
-        host=StaticValues.settings['messenger']['host'],
-        port=StaticValues.settings['messenger']['port']
+        host=config.app['host'],
+        port=config.app['port']
         )
