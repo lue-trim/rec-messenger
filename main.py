@@ -125,17 +125,6 @@ async def get_blrec_message(item: BlrecWebhookData|str, ip_check=Depends(check_i
     await webhook_handle(json_data=json_data, direct_send=config.qmsg['enabled'])
     return {"code": 200, "message": "mua!"}
 
-### 随机歌单
-@app.get("/rndsong")
-async def get_rnd_wasesong():
-    '返回一首随机叽歌'
-    songlist = config.app['songlist']
-    if songlist:
-        aid = random.choice(songlist)
-        url = f"https://www.bilibili.com/video/av{aid}"
-        return RedirectResponse(url=url)
-    else:
-        return {"code": 500, "message": "Please set up the songs!"}
 
 ### 获取消息
 @app.get("/")
@@ -165,6 +154,41 @@ async def return_blrec_message(type:str="latest", ip_check=Depends(check_ip)):
     else:
         msg = ''
     return {"code": 200, "message": msg}
+
+
+### 随机歌单
+@app.get("/rndsong")
+async def get_rnd_wasesong():
+    '返回一首随机叽歌'
+    songlist = config.app['songlist']
+    if songlist:
+        aid = random.choice(songlist)
+        url = f"https://www.bilibili.com/video/av{aid}"
+        return RedirectResponse(url=url)
+    else:
+        return {"code": 500, "message": "Please set up the songs!"}
+
+@app.get("/rndsong/app")
+async def get_rnd_wasesong_app():
+    '返回一首随机叽歌并且直接跳转到B站'
+    songlist = config.app['songlist']
+    if songlist:
+        aid = random.choice(songlist)
+        url = f"bilibili://video/av{aid}"
+        return RedirectResponse(url=url)
+    else:
+        return {"code": 500, "message": "Please set up the songs!"}
+
+@app.get("/rndsong/webapp")
+async def get_rnd_wasesong_webapp():
+    '尝试用B站APP自带浏览器打开一首随机叽歌'
+    songlist = config.app['songlist']
+    if songlist:
+        aid = random.choice(songlist)
+        url = f"bilibili://browser/?url=https%3A%2F%2Fapi.luetrim.top%2Frndsong"
+        return RedirectResponse(url=url)
+    else:
+        return {"code": 500, "message": "Please set up the songs!"}
 
 if __name__ == "__main__":
     uvicorn.run(
