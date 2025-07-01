@@ -2,15 +2,28 @@ from fastapi import FastAPI
 from fastapi import Depends, Request, HTTPException
 from fastapi.responses import RedirectResponse
 from ipaddress import ip_address
+
+from aiohttp import ClientSession, ClientTimeout
+
 import json, toml, random
-import asyncio, requests, uvicorn
+import asyncio, uvicorn
 
 # from loguru import logger
 from models import BlrecWebhookData, BlrecType
-from static import config
+from static import config, logger
 
 class StaticValues():
     message_queue = asyncio.Queue(maxsize=10)
+
+async def _request(timeout=0):
+    async with ClientSession(timeout=ClientTimeout(total=timeout)) as session:
+        async with session.request(**kwargs) as res:
+            response = await res.json()
+            if not res.ok:
+                logger.error(f"Request error: \n{response}")
+                return {}
+            else:
+                return response
 
 async def send_msg():
     '给bot发消息'
@@ -27,7 +40,7 @@ async def send_msg():
     }
 
     # 请求API
-    response = requests.post(url=url, data=data, headers=headers)
+    response = _request(method="post", url=url, data=data, headers=headers)
     #response = requests.post(url=url, data=json.dumps(data), headers=headers)
     data = response.json()
 
@@ -87,10 +100,9 @@ async def webhook_handle(json_data, direct_send=True):
 
 async def get_blrec_data(room_id):
     '获取房间信息'
-    import requests
     blrec_url = config.blrec['url']
     url = f"{blrec_url}/api/v1/tasks/{room_id}/data"
-    response = requests.get(url=url)
+    response = _request(method="get", url=url)
     response_json = response.json()
 
     return response_json

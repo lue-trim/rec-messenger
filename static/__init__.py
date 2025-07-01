@@ -1,4 +1,5 @@
 import toml, os
+from loguru import logger
 
 class __Config:
     __app:dict
@@ -56,6 +57,7 @@ url = "http://localhost:2356"
         with open(config_path, 'r', encoding='utf-8') as f:
             config_file = toml.load(f)
             self.__app = config_file['messenger']
+            logger.info(f"Loaded {len(self.__app['songlist'])} songs.")
             self.__qmsg = config_file['qmsg']
             self.__blrec = config_file['blrec']
 
