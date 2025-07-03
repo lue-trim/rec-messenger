@@ -57,11 +57,12 @@ async def webhook_handle(json_data, direct_send=True):
     # 根据事件类型分别发送不同信息
     if event_type == BlrecType.Error:
         msg = f"""\
-录制异常
-时间：
-{date}
-详情：
+**录制异常**
+```
 {data}
+```
+---
+> 时间: {date}
 """
     elif event_type == BlrecType.SpaceNoEnoughEvent:
         msg = f"""警告：录播磁盘空间不足"""
@@ -79,18 +80,20 @@ async def webhook_handle(json_data, direct_send=True):
 
         if event_type == BlrecType.RecordingStartedEvent:
             msg = f"""\
-{user_name} 录制开始
-时间：{date}
-标题：{title}
-分区：{area_name}
+**{user_name} 录制开始**
+---
+> 时间：{date}
+> 标题：{title}
+> 分区：{area_name}
 """
 
         elif event_type == BlrecType.RecordingFinishedEvent:
             msg = f"""\
-{user_name} 录制结束
-时间：{date}
-标题：{title}
-分区：{area_name}
+**{user_name} 录制结束**
+---
+> 时间：{date}
+> 标题：{title}
+> 分区：{area_name}
 """
 
     # 发送
