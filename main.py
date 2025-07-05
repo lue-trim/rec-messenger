@@ -5,7 +5,7 @@ from ipaddress import ip_address
 
 from aiohttp import ClientSession, ClientTimeout
 
-import json, toml, random
+import json, toml, random, traceback
 import asyncio, uvicorn
 
 # from loguru import logger
@@ -15,7 +15,7 @@ from static import config, logger
 class StaticValues():
     message_queue = asyncio.Queue(maxsize=10)
 
-async def _request(timeout=0):
+async def _request(timeout=0, **kwargs):
     async with ClientSession(timeout=ClientTimeout(total=timeout)) as session:
         async with session.request(**kwargs) as res:
             response = await res.json()
@@ -74,7 +74,8 @@ async def webhook_handle(json_data, direct_send=True):
             rec_info = await get_blrec_data(room_id=room_id)
             user_name = rec_info['user_info']['name']
         except Exception:
-            user_name = str(room_id)[:3] + "***"
+            user_name = str(room_id)
+            logger.warning(f"抓取直播信息失败: \n{traceback.format_exc()}")
         title = json_data['data']['room_info']['title']
         area_name = json_data['data']['room_info']['area_name']
 
