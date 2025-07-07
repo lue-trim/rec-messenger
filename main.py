@@ -40,7 +40,7 @@ async def send_msg():
     }
 
     # 请求API
-    response = _request(method="post", url=url, data=data, headers=headers)
+    response = await _request(method="post", url=url, data=data, headers=headers)
     #response = requests.post(url=url, data=json.dumps(data), headers=headers)
     data = response.json()
 
@@ -50,7 +50,8 @@ async def send_msg():
 async def webhook_handle(json_data, direct_send=True):
     '处理发送的webhook消息'
     # 预处理
-    data = json.dumps(json_data['data'])
+    # data = json.dumps(json_data['data'])
+    data = json_data['data']
     date = json_data['date']
     event_type = json_data['type']
 
@@ -106,8 +107,8 @@ async def get_blrec_data(room_id):
     '获取房间信息'
     blrec_url = config.blrec['url']
     url = f"{blrec_url}/api/v1/tasks/{room_id}/data"
-    response = _request(method="get", url=url)
-    response_json = response.json()
+    response_json = await _request(method="get", url=url)
+    # response_json = response.json()
 
     return response_json
 
