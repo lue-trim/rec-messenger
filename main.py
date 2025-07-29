@@ -122,7 +122,13 @@ app = FastAPI()
 ### BLREC Webhook
 def check_ip (req: Request):
     '检查IP是否在许可范围内'
-    request_ip = ip_address(req.client.host)
+    # 检查XFF
+    default_host = req.client.host
+    ip_list = req.headers.get("X-Forwarded-For", f",{default_host}").split(",")
+    real_ip = ip_list[-1].strip()
+    request_ip = ip_address(real_ip)
+    
+    # 确定哪些IP可允许
     allow_ip_list = [ip_address(ip) for ip in config.app['ip_whitelist']]
     if request_ip not in allow_ip_list:
         raise HTTPException(
