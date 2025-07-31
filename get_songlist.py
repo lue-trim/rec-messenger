@@ -6,9 +6,9 @@ import asyncio, json, sys
 from bilibili_api.user import User
 
 UID = 1950658 # B站UID
-TID = 1 # 分区ID，1=动画区，3=音乐区，4=游戏区，160=生活区，211=美食区
+TID = 0 # 分区ID，0=全部，1=动画区，3=音乐区，4=游戏区，160=生活区，211=美食区
 MAX_PAGES = 1 # 前n页
-PS = 40 # 一页n个视频
+PS = 20 # 一页n个视频
 
 async def main():
     u = User(uid=UID)
