@@ -6,7 +6,7 @@ import json, toml, random, traceback
 import asyncio, uvicorn
 
 import songlist
-from messenger import return_blrec_message
+from messenger import return_message, receive_blrec_message
 
 # from loguru import logger
 from models import BlrecWebhookData, BlrecType
@@ -40,12 +40,7 @@ def check_ip (req: Request):
 @app.post("/")
 async def get_blrec_message(item: BlrecWebhookData|str, ip_check=Depends(check_ip)):
     '处理blrec post过来的消息'
-    data = item
-    if type(item) is str:
-        json_data = json.loads(item)
-    else:
-        json_data = {"data": data.data, "date": data.date, "type": data.type, "id": data.id}
-    await webhook_handle(json_data=json_data, direct_send=config.qmsg['enabled'])
+    await receive_blrec_message(item)
     return {"code": 200, "message": "mua!"}
 
 
@@ -53,7 +48,7 @@ async def get_blrec_message(item: BlrecWebhookData|str, ip_check=Depends(check_i
 @app.get("/")
 async def get_message(type:str="latest", ip_check=Depends(check_ip)):
     '返回消息'
-    return await return_blrec_message(type)
+    return await return_message(type)
 
 
 ### 随机歌单

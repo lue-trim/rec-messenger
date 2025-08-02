@@ -107,7 +107,17 @@ async def get_blrec_data(room_id):
 
     return response_json
 
-async def return_blrec_message(type:str):
+async def receive_blrec_message(item: BlrecWebhookData|str):
+    '接收blrec post过来的信息'
+    data = item
+    if type(item) is str:
+        json_data = json.loads(item)
+    else:
+        json_data = {"data": data.data, "date": data.date, "type": data.type, "id": data.id}
+    await webhook_handle(json_data=json_data, direct_send=config.qmsg['enabled'])
+
+async def return_message(type:str):
+    '回复暂存的信息'
     msgtype = type
     msg_queue = StaticValues.message_queue
     if not msg_queue.empty():
