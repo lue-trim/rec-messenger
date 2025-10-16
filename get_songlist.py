@@ -4,7 +4,9 @@
 import asyncio, json, sys
 
 from bilibili_api.user import User
+from bilibili_api import Credential
 
+COOKIES_FILE = ""
 UID = 1950658 # B站UID
 TID = 0 # 分区ID，0=全部，1=动画区，3=音乐区，4=游戏区，160=生活区，211=美食区
 MAX_PAGES = 1 # 前n页
@@ -12,6 +14,9 @@ PS = 20 # 一页n个视频
 
 async def main():
     u = User(uid=UID)
+    with open(COOKIES_FILE) as f:
+        cookies = json.load(f)
+    u.credential = Credential.from_cookies(cookies)
     for i in range(MAX_PAGES):
         videos = await u.get_videos(tid=TID, pn=i+1, ps=PS)
         # json.dump(videos, sys.stdout)
