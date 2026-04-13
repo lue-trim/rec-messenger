@@ -5,11 +5,11 @@ from fastapi.responses import RedirectResponse
 
 def get_return_url(songlist=[], url_type=""):
     '获取返回的URL'
-    aid = random.choice(songlist)
+    bvid = random.choice(songlist)
     if url_type == "app":
-        url = f"bilibili://video/av{aid}"
+        url = f"bilibili://video/{bvid}"
     elif url_type == "web":
-        url = f"https://www.bilibili.com/video/av{aid}"
+        url = f"https://www.bilibili.com/video/{bvid}"
     else:
         url = f"bilibili://browser/?url=https%3A%2F%2Fapi.luetrim.top%2Frndsong"
     return url
